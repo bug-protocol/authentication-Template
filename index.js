@@ -39,3 +39,20 @@ app.post('/register',async(req,res)=>{
     await user.save();
     res.redirect('/secret');
 })
+app.get('/login',(req,res)=>{
+    res.render('login');
+})
+app.post('/login',async(req,res)=>{
+    const{username,password} = req.body;
+    const user = await User.findOne({username});
+    if(!user){
+        return res.redirect('/register');
+    }
+    const matching = await bcrypt.compare(password,user.password);
+    if(matching){
+        res.send("Welcome to the secret page!!");
+    }
+    else{
+        res.send("Incorrect username or Password!!");
+    }
+})
