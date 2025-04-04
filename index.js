@@ -3,6 +3,7 @@ const app = express();
 const User = require('./models/user');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const session = require('express-session');
 mongoose.connect('mongodb://localhost:27017/demoauth',{useNewUrlParser:true,useUnifiedTopology:true})
     .then(()=>{
         console.log("MongoDB connected successfully!!");
@@ -12,6 +13,11 @@ mongoose.connect('mongodb://localhost:27017/demoauth',{useNewUrlParser:true,useU
     }   
 )
 app.use(express.urlencoded({extended:true}));
+app.use(session({
+    secret:'itisaninterestingsecret',
+    resave: false,
+    saveUninitialized: false
+}));
 app.set('view engine','ejs');
 app.set('views','views');
 app.listen(4400,()=>{
@@ -22,7 +28,10 @@ app.get('/',(req,res)=>{
     res.send("Home!");
 })
 app.get('/secret',(req,res)=>{
-    res.send("This will be our secret");
+    if(!req.session.user_id)
+        res.redirect('/login');
+    else
+        res.send("Try again");
 })
 
 app.get('/register',(req,res)=>{
@@ -37,6 +46,7 @@ app.post('/register',async(req,res)=>{
     })
     console.log(user);
     await user.save();
+    req.session.user_id = user._id;
     res.redirect('/secret');
 })
 app.get('/login',(req,res)=>{
@@ -50,9 +60,10 @@ app.post('/login',async(req,res)=>{
     }
     const matching = await bcrypt.compare(password,user.password);
     if(matching){
-        res.send("Welcome to the secret page!!");
+        req.session.user_id = user._id;
+        res.redirect('/secret');
     }
     else{
-        res.send("Incorrect username or Password!!");
+        res.redirect("/login");
     }
 })
